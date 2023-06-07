@@ -87,6 +87,13 @@ async function run() {
             const result = await userCollection.insertOne(user);
             res.send(result);
         });
+        // getting selected class by specific email
+        app.get('/myclass/:email', async (req, res) => {
+            const email = req.params.email;
+            const result = await selectedClassCollection.find({ studentEmail: email }).toArray();
+            res.json(result);
+        });
+
 
 
 
