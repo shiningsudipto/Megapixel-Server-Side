@@ -32,12 +32,19 @@ async function run() {
         await client.connect();
 
         const classCollection = client.db('megapixel').collection('classes');
+        const userCollection = client.db('megapixel').collection('users');
 
         app.get('/classes', async (req, res) => {
             const classes = classCollection.find();
             const result = await classes.toArray();
             res.send(result);
         })
+        app.get('/users', async (req, res) => {
+            const users = userCollection.find();
+            const result = await users.toArray();
+            res.send(result);
+        })
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
