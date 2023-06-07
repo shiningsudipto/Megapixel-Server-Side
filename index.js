@@ -39,11 +39,22 @@ async function run() {
             const result = await classes.toArray();
             res.send(result);
         })
-        app.get('/users', async (req, res) => {
-            const users = userCollection.find();
-            const result = await users.toArray();
+        app.get('/instructors', async (req, res) => {
+            const result = await userCollection.find({ role: 'instructor' }).toArray();
             res.send(result);
-        })
+        });
+        // storing new user's information
+        app.post('/newUser', async (req, res) => {
+            const user = req.body;
+            const query = { email: user.email }
+            const existingUser = await userCollection.findOne(query);
+            if (existingUser) {
+                return res.send({ message: 'user already exists' })
+            }
+            const result = await userCollection.insertOne(user);
+            res.send(result);
+        });
+
 
 
         // Send a ping to confirm a successful connection
