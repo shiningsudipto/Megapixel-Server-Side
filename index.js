@@ -53,6 +53,7 @@ async function run() {
         const selectedClassCollection = client.db('megapixel').collection('selectedClasses');
         const userCollection = client.db('megapixel').collection('users');
         const enrolledClassCollection = client.db('megapixel').collection('enrolledClass');
+        const pendingClassesCollection = client.db('megapixel').collection('pendingClasses');
 
         app.post('/jwt', (req, res) => {
             const user = req.body;
@@ -161,7 +162,12 @@ async function run() {
             const result = await enrolledClassCollection.find({ studentEmail: email }).toArray();
             res.json(result);
         });
-
+        // storing class added by the instructor
+        app.post('/pendingClasses', async (req, res) => {
+            const query = req.body;
+            const result = await pendingClassesCollection.insertOne(query);
+            res.send(result)
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
