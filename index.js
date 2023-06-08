@@ -4,6 +4,7 @@ require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const app = express();
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY)
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -51,6 +52,7 @@ async function run() {
         const classCollection = client.db('megapixel').collection('classes');
         const selectedClassCollection = client.db('megapixel').collection('selectedClasses');
         const userCollection = client.db('megapixel').collection('users');
+        const enrolledClassCollection = client.db('megapixel').collection('enrolledClass');
 
         app.post('/jwt', (req, res) => {
             const user = req.body;
@@ -102,6 +104,7 @@ async function run() {
             const result = await selectedClassCollection.deleteOne(query);
             res.send(result);
         })
+        // getting selected class by id
         app.get('/findSelectedClass/:id', async (req, res) => {
             const id = req.params.id;
             console.log(id);
@@ -109,6 +112,36 @@ async function run() {
             const result = await selectedClassCollection.findOne(query);
             res.send(result);
         })
+        // payment intent
+        app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+            const { price } = req.body;
+            const amount = price * 1000;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                payment_method_types: ['card']
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+        })
+        // payment
+        app.post('/payments', verifyJWT, async (req, res) => {
+            const payment = req.body;
+            const insertResult = await enrolledClassCollection.insertOne(payment);
+            const id = payment.classId;
+            const query = { _id: new ObjectId(id) }; // Match the classId field
+            const deleteResult = await selectedClassCollection.deleteOne(query);
+
+            res.send({ insertResult, deleteResult });
+        });
+
+
+        app.get('/myEnrolledClass/:email', async (req, res) => {
+            const email = req.params.email;
+            const result = await enrolledClassCollection.find({ studentEmail: email }).toArray();
+            res.json(result);
+        });
 
 
         // Send a ping to confirm a successful connection
