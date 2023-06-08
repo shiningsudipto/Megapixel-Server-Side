@@ -95,11 +95,10 @@ async function run() {
             const result = await selectedClassCollection.find({ studentEmail: email }).toArray();
             res.json(result);
         });
-
         // delete selected class
         app.delete('/deleteSelectedClass/:id', async (req, res) => {
             const id = req.params.id;
-            console.log(id);
+            // console.log(id);
             const query = { _id: new ObjectId(id) }
             const result = await selectedClassCollection.deleteOne(query);
             res.send(result);
@@ -107,7 +106,7 @@ async function run() {
         // getting selected class by id
         app.get('/findSelectedClass/:id', async (req, res) => {
             const id = req.params.id;
-            console.log(id);
+            // console.log(id);
             const query = { _id: new ObjectId(id) }
             const result = await selectedClassCollection.findOne(query);
             res.send(result);
@@ -135,8 +134,28 @@ async function run() {
 
             res.send({ insertResult, deleteResult });
         });
-
-
+        // updating available seats
+        app.put('/updateavailableseats/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const query = { _id: new ObjectId(id) }
+            console.log(query);
+            const classDocument = await classCollection.findOne(query);
+            if (!classDocument) {
+                // Handle the case when the document is not found
+                return res.status(404).send({ error: "Class not found" });
+            }
+            const updateSeats = parseInt(classDocument.availableSeats) - 1;
+            console.log(classDocument.availableSeats);
+            const updateQuery = {
+                $set: {
+                    availableSeats: updateSeats
+                }
+            }
+            const updateResult = await classCollection.updateOne(query, updateQuery)
+            res.send(updateResult)
+        })
+        // getting all enrolled class by email
         app.get('/myEnrolledClass/:email', async (req, res) => {
             const email = req.params.email;
             const result = await enrolledClassCollection.find({ studentEmail: email }).toArray();
