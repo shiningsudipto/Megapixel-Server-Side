@@ -171,9 +171,16 @@ async function run() {
         // getting added classes by instructor with email
         app.get('/instructorsAddedClass/:email', async (req, res) => {
             const email = req.params.email;
-            const result = await pendingClassesCollection.find({ instructorEmail: email }).toArray();
-            res.send(result)
-        })
+            try {
+                const pendingClasses = await pendingClassesCollection.find({ instructorEmail: email }).toArray();
+                const classes = await classCollection.find({ instructorEmail: email }).toArray();
+                const myAddedClasses = [...pendingClasses, ...classes];
+                res.send(myAddedClasses);
+            } catch (error) {
+                res.status(500).send('An unexpected error occurred.');
+            }
+        });
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
