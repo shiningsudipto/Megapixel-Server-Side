@@ -53,7 +53,6 @@ async function run() {
         const selectedClassCollection = client.db('megapixel').collection('selectedClasses');
         const userCollection = client.db('megapixel').collection('users');
         const enrolledClassCollection = client.db('megapixel').collection('enrolledClass');
-        const pendingClassesCollection = client.db('megapixel').collection('pendingClasses');
 
         app.post('/jwt', (req, res) => {
             const user = req.body;
@@ -62,12 +61,30 @@ async function run() {
             })
             res.send({ token });
         })
-        // all classes
+        // all classes with status 'Approved'
         app.get('/classes', async (req, res) => {
-            const classes = classCollection.find();
-            const result = await classes.toArray();
-            res.send(result);
+            const classes = await classCollection.find({ status: "Approved" }).toArray();
+            res.send(classes);
+        });
+        // all classes
+        app.get('/manageClasses', async (req, res) => {
+            const classes = await classCollection.find().toArray();
+            res.send(classes);
+        });
+
+        app.patch('/classes/approve/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const update = {
+                $set: {
+                    status: 'Approved'
+                }
+            }
+            const result = await classCollection.updateOne(query, update);
+            res.send(result)
         })
+
+
         // storing selected classes
         app.post('/selectedClass', async (req, res) => {
             const item = req.body;
@@ -163,19 +180,17 @@ async function run() {
             res.json(result);
         });
         // storing class added by the instructor
-        app.post('/pendingClasses', async (req, res) => {
+        app.post('/instructorAddedClasses', async (req, res) => {
             const query = req.body;
-            const result = await pendingClassesCollection.insertOne(query);
+            const result = await classCollection.insertOne(query);
             res.send(result)
         })
         // getting added classes by instructor with email
         app.get('/instructorsAddedClass/:email', async (req, res) => {
             const email = req.params.email;
             try {
-                const pendingClasses = await pendingClassesCollection.find({ instructorEmail: email }).toArray();
                 const classes = await classCollection.find({ instructorEmail: email }).toArray();
-                const myAddedClasses = [...pendingClasses, ...classes];
-                res.send(myAddedClasses);
+                res.send(classes);
             } catch (error) {
                 res.status(500).send('An unexpected error occurred.');
             }
