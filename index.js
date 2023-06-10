@@ -1,4 +1,5 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const cors = require('cors');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -10,6 +11,7 @@ const port = process.env.PORT || 5000;
 // middleware
 app.use(cors());
 app.use(express.json());
+app.use(bodyParser.json());
 
 app.get('/', (req, res) => {
     res.json('Megapixel IS Running')
@@ -61,30 +63,44 @@ async function run() {
             })
             res.send({ token });
         })
-        // all classes with status 'Approved'
-        app.get('/classes', async (req, res) => {
-            const classes = await classCollection.find({ status: "Approved" }).toArray();
-            res.send(classes);
-        });
         // all classes
         app.get('/manageClasses', async (req, res) => {
             const classes = await classCollection.find().toArray();
             res.send(classes);
         });
-
-        app.patch('/classes/approve/:id', async (req, res) => {
+        // all classes with status 'Approved'
+        app.get('/classes', async (req, res) => {
+            const classes = await classCollection.find({ status: "Approved" }).toArray();
+            res.send(classes);
+        });
+        // Making class status pending to approved and Deny
+        app.put('/classes/approve/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
+            const updateStatus = req.body;
             const update = {
                 $set: {
-                    status: 'Approved'
+                    status: updateStatus.newStatus
                 }
+            }
+            if (updateStatus.newStatus === 'Approved') {
+                update.$unset = {
+                    feedback: 1
+                };
             }
             const result = await classCollection.updateOne(query, update);
             res.send(result)
         })
-
-
+        // setting feedback to the class
+        app.patch('/classes/feedback/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const query = { _id: new ObjectId(id) };
+            const feedback = req.body.feedback; // Retrieve the feedback value from the request body
+            const update = { $set: { feedback: feedback } }
+            const updatedClass = await classCollection.findOneAndUpdate(query, update);
+            res.json(updatedClass);
+        });
         // storing selected classes
         app.post('/selectedClass', async (req, res) => {
             const item = req.body;
