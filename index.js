@@ -211,6 +211,12 @@ async function run() {
                 res.status(500).send('An unexpected error occurred.');
             }
         });
+        // getting all registered user
+        app.get('/allRegisteredUsers', async (req, res) => {
+            const result = await userCollection.find().toArray();
+            res.send(result)
+        })
+
 
 
         // Send a ping to confirm a successful connection
