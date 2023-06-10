@@ -216,6 +216,20 @@ async function run() {
             const result = await userCollection.find().toArray();
             res.send(result)
         })
+        // updating user role
+        app.put('/users/role/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const updateRole = req.body.newRole;
+            const update = {
+                $set: {
+                    role: updateRole
+                }
+            };
+            const result = await userCollection.updateOne(query, update);
+            res.send(result);
+        });
+
 
 
 
