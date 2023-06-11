@@ -109,7 +109,7 @@ async function run() {
         })
         // all instructors
         app.get('/instructors', async (req, res) => {
-            const result = await userCollection.find({ role: 'instructor' }).toArray();
+            const result = await userCollection.find({ role: 'Instructor' }).toArray();
             res.send(result);
         });
         // storing new user's information
@@ -215,6 +215,14 @@ async function run() {
         app.get('/allRegisteredUsers', async (req, res) => {
             const result = await userCollection.find().toArray();
             res.send(result)
+        })
+        // getting user by email for identify role
+        app.get('/userRole/:email', async (req, res) => {
+            const email = req.params.email;
+            console.log(email);
+            const query = { email: email }
+            const result = await userCollection.findOne(query);
+            res.send(result);
         })
         // updating user role
         app.put('/users/role/:id', async (req, res) => {
