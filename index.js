@@ -79,6 +79,15 @@ async function run() {
             }
             next()
         }
+        const verifyStudent = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email }
+            const user = await userCollection.findOne(query);
+            if (user?.role !== 'student') {
+                return res.status(403).send({ error: true, message: 'forbidden message' })
+            }
+            next()
+        }
         // Identifying admin or not
         app.get('/users/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
@@ -107,6 +116,7 @@ async function run() {
             const result = { instructor: user?.role === 'Instructor' }
             res.json(result)
         })
+        // Identifying student or not
         app.get('/users/student/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
             if (req.decoded.email !== email) {
@@ -179,7 +189,7 @@ async function run() {
             res.json(result);
         });
         // getting selected class by specific email
-        app.get('/myclass/:email', verifyJWT, async (req, res) => {
+        app.get('/myclass/:email', verifyJWT, verifyStudent, async (req, res) => {
             const email = req.params.email;
             const result = await selectedClassCollection.find({ studentEmail: email }).toArray();
             res.json(result);
@@ -192,8 +202,8 @@ async function run() {
             const result = await selectedClassCollection.deleteOne(query);
             res.json(result);
         })
-        // getting selected class by id
-        app.get('/findSelectedClass/:id', verifyJWT, async (req, res) => {
+        // getting selected class by id in route
+        app.get('/findSelectedClass/:id', async (req, res) => {
             const id = req.params.id;
             // console.log(id);
             const query = { _id: new ObjectId(id) }
@@ -201,9 +211,10 @@ async function run() {
             res.json(result);
         })
         // payment intent
-        app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+        app.post("/create-payment-intent", async (req, res) => {
             const { price } = req.body;
             const amount = price * 1000;
+            // console.log(amount);
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
                 currency: 'usd',
@@ -214,28 +225,30 @@ async function run() {
             })
         })
         // payment
-        app.post('/payments', verifyJWT, async (req, res) => {
+        app.post('/payments', async (req, res) => {
             const payment = req.body;
             const insertResult = await enrolledClassCollection.insertOne(payment);
             const id = payment.classId;
             const query = { _id: new ObjectId(id) }; // Match the classId field
             const deleteResult = await selectedClassCollection.deleteOne(query);
 
-            res.json({ insertResult, deleteResult });
+            // Increment totalEnrolled field by 1 in userCollection
+            const instructorEmail = payment.instructorEmail;
+            const userQuery = { email: instructorEmail }; // Match the email field in userCollection
+            const updateResult = await userCollection.updateOne(userQuery, { $inc: { totalEnrolled: 1 } });
+
+            res.json({ insertResult, deleteResult, updateResult });
         });
         // updating available seats
         app.put('/updateavailableseats/:id', async (req, res) => {
             const id = req.params.id;
             // console.log(id);
             const query = { _id: new ObjectId(id) }
-            // console.log(query);
             const classDocument = await classCollection.findOne(query);
             if (!classDocument) {
-                // Handle the case when the document is not found
                 return res.status(404).send({ error: "Class not found" });
             }
             const updateSeats = parseInt(classDocument.availableSeats) - 1;
-            // console.log(classDocument.availableSeats);
             const updateQuery = {
                 $set: {
                     availableSeats: updateSeats
@@ -251,13 +264,13 @@ async function run() {
             res.json(result);
         });
         // storing class added by the instructor
-        app.post('/instructorAddedClasses', verifyJWT, async (req, res) => {
+        app.post('/instructorAddedClasses', async (req, res) => {
             const query = req.body;
             const result = await classCollection.insertOne(query);
             res.json(result)
         })
         // getting added classes by instructor with email
-        app.get('/instructorsAddedClass/:email', verifyJWT, verifyInstructor, async (req, res) => {
+        app.get('/instructorsAddedClass/:email', async (req, res) => {
             const email = req.params.email;
             try {
                 const classes = await classCollection.find({ instructorEmail: email }).toArray();
