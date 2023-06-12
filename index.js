@@ -193,7 +193,7 @@ async function run() {
             res.json(result);
         })
         // getting selected class by id
-        app.get('/findSelectedClass/:id', async (req, res) => {
+        app.get('/findSelectedClass/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             // console.log(id);
             const query = { _id: new ObjectId(id) }
@@ -272,7 +272,7 @@ async function run() {
             res.json(result)
         })
         // getting user by email for identify role
-        app.get('/userRole/:email', verifyJWT, async (req, res) => {
+        app.get('/userRole/:email', async (req, res) => {
             const email = req.params.email;
             // console.log(email);
             const query = { email: email }
